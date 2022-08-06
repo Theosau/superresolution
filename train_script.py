@@ -1,4 +1,5 @@
 import torch, pdb
+import numpy as np
 from tqdm import tqdm
 from cnn_models import ConvAE
 from loss_functions import PDELoss
@@ -28,32 +29,55 @@ if __name__ == "__main__":
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     # image size
-    input_size = 320
+    input_size = 256
     num_samples = 32
 
     # beta loss weight parameter
-    beta = 0.
+    beta = 1
 
     # epochs
     num_epochs = 10
 
-    # willl have to load the data
-    print('Generating random data')
-    x = torch.randn((num_samples, input_size, input_size, 1), requires_grad=True).permute((0, 3, 1, 2))
-    y = torch.randn((num_samples, input_size, input_size, 1), requires_grad=True).permute((0, 3, 1, 2))
-    u = torch.randn((num_samples, input_size, input_size, 1), requires_grad=True)
-    v = torch.randn((num_samples, input_size, input_size, 1), requires_grad=True)
-    p = torch.randn((num_samples, input_size, input_size, 1), requires_grad=True)
+    # file 
+    file_name = 'channel_x1_256_y1_512_z1_256_step2'
 
-    x_val = torch.randn((num_samples, input_size, input_size, 1), requires_grad=True).permute((0, 3, 1, 2))
-    y_val = torch.randn((num_samples, input_size, input_size, 1), requires_grad=True).permute((0, 3, 1, 2))
-    u_val = torch.randn((num_samples, input_size, input_size, 1), requires_grad=True)
-    v_val = torch.randn((num_samples, input_size, input_size, 1), requires_grad=True)
-    p_val = torch.randn((num_samples, input_size, input_size, 1), requires_grad=True)
-    print('Generated data')
+    # load data
+    x_all = np.load('data/' + file_name + '/xs.npy')
+    y_all = np.load('data/' + file_name + '/ys.npy')
+    u_all = np.load('data/' + file_name + '/us.npy')
+    v_all = np.load('data/' + file_name + '/vs.npy')
+    p_all = np.load('data/' + file_name + '/ps.npy')
+
+    x = torch.tensor(x_all[:100, ...], requires_grad=True).unsqueeze(-1).permute((0, 3, 1, 2))
+    y = torch.tensor(y_all[:100, ...], requires_grad=True).unsqueeze(-1).permute((0, 3, 1, 2))
+    u = torch.tensor(u_all[:100, ...], requires_grad=True).unsqueeze(-1)
+    v = torch.tensor(v_all[:100, ...], requires_grad=True).unsqueeze(-1)
+    p = torch.tensor(p_all[:100, ...], requires_grad=True).unsqueeze(-1)
+
+    x_val = torch.tensor(x_all[100:, ...], requires_grad=True).unsqueeze(-1).permute((0, 3, 1, 2))
+    y_val = torch.tensor(y_all[100:, ...], requires_grad=True).unsqueeze(-1).permute((0, 3, 1, 2))
+    u_val = torch.tensor(u_all[100:, ...], requires_grad=True).unsqueeze(-1)
+    v_val = torch.tensor(v_all[100:, ...], requires_grad=True).unsqueeze(-1)
+    p_val = torch.tensor(p_all[100:, ...], requires_grad=True).unsqueeze(-1)
+
+    # willl have to load the data
+    # print('Generating random data')
+    # x = torch.randn((num_samples, input_size, input_size, 1), requires_grad=True).permute((0, 3, 1, 2))
+    # y = torch.randn((num_samples, input_size, input_size, 1), requires_grad=True).permute((0, 3, 1, 2))
+    # u = torch.randn((num_samples, input_size, input_size, 1), requires_grad=True)
+    # v = torch.randn((num_samples, input_size, input_size, 1), requires_grad=True)
+    # p = torch.randn((num_samples, input_size, input_size, 1), requires_grad=True)
+
+    # x_val = torch.randn((num_samples, input_size, input_size, 1), requires_grad=True).permute((0, 3, 1, 2))
+    # y_val = torch.randn((num_samples, input_size, input_size, 1), requires_grad=True).permute((0, 3, 1, 2))
+    # u_val = torch.randn((num_samples, input_size, input_size, 1), requires_grad=True)
+    # v_val = torch.randn((num_samples, input_size, input_size, 1), requires_grad=True)
+    # p_val = torch.randn((num_samples, input_size, input_size, 1), requires_grad=True)
+    # print('Generated data')
     
     # data
     train_data = torch.cat([u, v, p], axis=-1)
+    # pdb.set_trace()
     train_data = train_data.permute((0, 3, 1, 2))
     val_data = torch.cat([u_val, v_val, p_val], axis=-1)
     val_data = val_data.permute((0, 3, 1, 2)) 
@@ -73,21 +97,25 @@ if __name__ == "__main__":
     model.train()
 
     # Train the model
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
     ae_loss_function = torch.nn.MSELoss(reduction='mean')
     pde_loss_function = PDELoss()
 
     print('Setup the model, dataloader, datasets, loss funcitons, optimizers.')     
     for epoch in tqdm(range(num_epochs)):
-        for i, (x_sample, y_sample, slice) in tqdm(enumerate(train_dataloader)):
+        for i, (x_sample, y_sample, flow_sample) in tqdm(enumerate(train_dataloader)):
             x_sample = x_sample.to(device=device, dtype=dtype)
             y_sample = y_sample.to(device=device, dtype=dtype)
-            slice = slice.to(device=device, dtype=dtype) #.requires_grad_(True)  # move to device, e.g. GPU
+            flow_sample = flow_sample.to(device=device, dtype=dtype) #.requires_grad_(True)  # move to device, e.g. GPU
             # ===================forward=====================
-            reconstruction = model.forward(torch.cat([x_sample, y_sample, slice], axis=1))
+            reconstruction = model.forward(torch.cat([x_sample, y_sample, flow_sample], axis=1))
+            # apply boundary conditions
+            reconstruction[:, 0:2, 0, :] = 0
+            reconstruction[:, 0:2, -1, :] = 0
+            np.save('recon'+str(i)+'.npy', reconstruction[0, 0].detach().cpu().numpy())
             # =====================loss======================
             pde_loss = pde_loss_function.compute_loss(x_sample, y_sample, reconstruction[:, 0], reconstruction[:, 1], reconstruction[:, 2])
-            ae_loss = ae_loss_function(slice, reconstruction)
+            ae_loss = ae_loss_function(flow_sample, reconstruction)
             loss = beta * ae_loss + (1-beta) * pde_loss
             # ===================backward====================
             optimizer.zero_grad()

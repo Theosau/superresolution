@@ -3,3 +3,4 @@
 TurbCutout.ipynb
 data/*
 __pycache__*
+*.npy
