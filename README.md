@@ -1,1 +1,1 @@
-CT-MRI image superresolution.
+PC-MRI image superresolution.

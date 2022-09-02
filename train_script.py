@@ -84,7 +84,7 @@ if __name__ == "__main__":
     val_dataset = ChannelFLow(x_val, y_val, val_data)
 
     # dataloaders
-    batch_size = 1
+    batch_size = 2
     train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=False)
     val_dataloader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
 
@@ -101,7 +101,7 @@ if __name__ == "__main__":
 
     print('Setup the model, dataloader, datasets, loss funcitons, optimizers.')     
     for epoch in tqdm(range(num_epochs)):
-        for i, (x_sample, y_sample, flow_sample) in tqdm(enumerate(train_dataloader)):
+        for i, (x_sample, y_sample, flow_sample) in enumerate(train_dataloader):
             x_sample = x_sample.to(device=device, dtype=dtype)
             y_sample = y_sample.to(device=device, dtype=dtype)
             flow_sample = flow_sample.to(device=device, dtype=dtype) #.requires_grad_(True)  # move to device, e.g. GPU
