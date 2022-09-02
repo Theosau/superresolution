@@ -18,36 +18,36 @@ class ConvAE(nn.Module):
 
         # encoder
         self.enc1 = nn.Sequential(
-            nn.Conv2d(in_channels=5, out_channels=16, kernel_size=3, stride=1, padding=1),
+            nn.Conv2d(in_channels=5, out_channels=8, kernel_size=3, stride=1, padding=1),
             nn.ReLU(),
             Interpolate(size=input_size//2, mode='bilinear'),
         )
 
         self.enc2 = nn.Sequential(
-          nn.Conv2d(in_channels=16, out_channels=32, kernel_size=3, stride=1, padding=1),
+          nn.Conv2d(in_channels=8, out_channels=12, kernel_size=3, stride=1, padding=1),
           nn.ReLU(),
           Interpolate(size=input_size//8, mode='bilinear'),
         )
         
         self.enc3 = nn.Sequential(
-          nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3, stride=1, padding=1),
+          nn.Conv2d(in_channels=12, out_channels=16, kernel_size=3, stride=1, padding=1),
           nn.ReLU(),
           Interpolate(size=input_size//16, mode='bilinear'),
         )
 
         # decoder 
         self.dec1 = nn.Sequential(
-          nn.Conv2d(in_channels=64, out_channels=32, kernel_size=3, stride=1, padding=1),
+          nn.Conv2d(in_channels=16, out_channels=12, kernel_size=3, stride=1, padding=1),
           nn.ReLU(),
           Interpolate(size=input_size//8, mode='bilinear'),
         )
         self.dec2 = nn.Sequential(
-          nn.Conv2d(in_channels=32, out_channels=16, kernel_size=3, stride=1, padding=1),
+          nn.Conv2d(in_channels=12, out_channels=8, kernel_size=3, stride=1, padding=1),
           nn.ReLU(),
           Interpolate(size=input_size//2, mode='bilinear'),
         )
         self.dec3 = nn.Sequential(
-          nn.Conv2d(in_channels=16, out_channels=5, kernel_size=3, stride=1, padding=1),
+          nn.Conv2d(in_channels=8, out_channels=5, kernel_size=3, stride=1, padding=1),
           nn.ReLU(),
           Interpolate(size=input_size, mode='bilinear'),
         )

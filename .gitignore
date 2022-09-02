@@ -4,3 +4,6 @@ TurbCutout.ipynb
 data/*
 __pycache__*
 checks/
+*.sh
+recon*
+*out
