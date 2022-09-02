@@ -59,17 +59,17 @@ if __name__ == "__main__":
 
     len_train = int(0.8*len(x_all))
 
-    x = torch.tensor(x_all[:len_train, ..., ...], requires_grad=True).unsqueeze(-1).permute((0, 3, 1, 2))
-    y = torch.tensor(y_all[:len_train, ..., ...], requires_grad=True).unsqueeze(-1).permute((0, 3, 1, 2))
-    u = torch.tensor(u_all[:len_train, ..., ...], requires_grad=True).unsqueeze(-1)
-    v = torch.tensor(v_all[:len_train, ..., ...], requires_grad=True).unsqueeze(-1)
-    p = torch.tensor(p_all[:len_train, ..., ...], requires_grad=True).unsqueeze(-1)
+    x = torch.tensor(x_all[:len_train, :, :], requires_grad=True).unsqueeze(-1).permute((0, 3, 1, 2))
+    y = torch.tensor(y_all[:len_train, :, :], requires_grad=True).unsqueeze(-1).permute((0, 3, 1, 2))
+    u = torch.tensor(u_all[:len_train, :, :], requires_grad=True).unsqueeze(-1)
+    v = torch.tensor(v_all[:len_train, :, :], requires_grad=True).unsqueeze(-1)
+    p = torch.tensor(p_all[:len_train, :, :], requires_grad=True).unsqueeze(-1)
 
-    x_val = torch.tensor(x_all[len_train:, ..., ...], requires_grad=True).unsqueeze(-1).permute((0, 3, 1, 2))
-    y_val = torch.tensor(y_all[len_train:, ..., ...], requires_grad=True).unsqueeze(-1).permute((0, 3, 1, 2))
-    u_val = torch.tensor(u_all[len_train:, ..., ...], requires_grad=True).unsqueeze(-1)
-    v_val = torch.tensor(v_all[len_train:, ..., ...], requires_grad=True).unsqueeze(-1)
-    p_val = torch.tensor(p_all[len_train:, ..., ...], requires_grad=True).unsqueeze(-1)
+    x_val = torch.tensor(x_all[len_train:, :, :], requires_grad=True).unsqueeze(-1).permute((0, 3, 1, 2))
+    y_val = torch.tensor(y_all[len_train:, :, :], requires_grad=True).unsqueeze(-1).permute((0, 3, 1, 2))
+    u_val = torch.tensor(u_all[len_train:, :, :], requires_grad=True).unsqueeze(-1)
+    v_val = torch.tensor(v_all[len_train:, :, :], requires_grad=True).unsqueeze(-1)
+    p_val = torch.tensor(p_all[len_train:, :, :], requires_grad=True).unsqueeze(-1)
     
     # data
     train_data = torch.cat([u, v, p], axis=-1)
