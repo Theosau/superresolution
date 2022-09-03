@@ -108,8 +108,8 @@ if __name__ == "__main__":
             # ===================forward=====================
             reconstruction = model.forward(torch.cat([x_sample, y_sample, flow_sample], axis=1))
             # apply boundary conditions
-            reconstruction[:, 0:2, 0, :] = 0
-            reconstruction[:, 0:2, -1, :] = 0
+            # reconstruction[:, 0:2, 0, :] = 0
+            # reconstruction[:, 0:2, -1, :] = 0
             # =====================loss======================
             pde_loss = pde_loss_function.compute_loss(x_sample, y_sample, reconstruction[:, 0], reconstruction[:, 1], reconstruction[:, 2])
             ae_loss = ae_loss_function(flow_sample, reconstruction)
@@ -118,5 +118,6 @@ if __name__ == "__main__":
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-            print(loss)
-        np.save('reconstuction.npy', reconstruction[0, 0].detach().cpu().numpy())
+            print(loss)  
+            if i and not(i%1000):
+                np.save('reconstuction.npy', reconstruction[0, 0].detach().cpu().numpy())

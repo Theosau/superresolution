@@ -13,48 +13,48 @@ class Interpolate(nn.Module):
         return x
 
 class ConvAE(nn.Module):
-    def __init__(self, input_size):
+    def __init__(self, input_size, channels_init=16):
         super(ConvAE, self).__init__()
 
         # encoder
         self.enc1 = nn.Sequential(
-            nn.Conv2d(in_channels=5, out_channels=8, kernel_size=3, stride=1, padding=1),
+            nn.Conv2d(in_channels=5, out_channels=channels_init, kernel_size=3, stride=1, padding=1),
             nn.ReLU(),
             Interpolate(size=input_size//2, mode='bilinear'),
         )
 
         self.enc2 = nn.Sequential(
-          nn.Conv2d(in_channels=8, out_channels=12, kernel_size=3, stride=1, padding=1),
+          nn.Conv2d(in_channels=channels_init, out_channels=channels_init*2, kernel_size=3, stride=1, padding=1),
           nn.ReLU(),
           Interpolate(size=input_size//8, mode='bilinear'),
         )
         
         self.enc3 = nn.Sequential(
-          nn.Conv2d(in_channels=12, out_channels=16, kernel_size=3, stride=1, padding=1),
+          nn.Conv2d(in_channels=channels_init*2, out_channels=channels_init*4, kernel_size=3, stride=1, padding=1),
           nn.ReLU(),
           Interpolate(size=input_size//16, mode='bilinear'),
         )
 
         # decoder 
         self.dec1 = nn.Sequential(
-          nn.Conv2d(in_channels=16, out_channels=12, kernel_size=3, stride=1, padding=1),
+          nn.Conv2d(in_channels=channels_init*4, out_channels=channels_init*2, kernel_size=3, stride=1, padding=1),
           nn.ReLU(),
           Interpolate(size=input_size//8, mode='bilinear'),
         )
         self.dec2 = nn.Sequential(
-          nn.Conv2d(in_channels=12, out_channels=8, kernel_size=3, stride=1, padding=1),
+          nn.Conv2d(in_channels=channels_init*2, out_channels=channels_init, kernel_size=3, stride=1, padding=1),
           nn.ReLU(),
           Interpolate(size=input_size//2, mode='bilinear'),
         )
         self.dec3 = nn.Sequential(
-          nn.Conv2d(in_channels=8, out_channels=5, kernel_size=3, stride=1, padding=1),
+          nn.Conv2d(in_channels=channels_init, out_channels=5, kernel_size=3, stride=1, padding=1),
           nn.ReLU(),
           Interpolate(size=input_size, mode='bilinear'),
         )
         self.dec4 = nn.Sequential(
           nn.Conv2d(in_channels=5, out_channels=3, kernel_size=3, stride=1, padding=1),
         )
-    
+
     def compute_next_size(self, dimension, kernel, padding=0, stride=1):
         return int((dimension + 2*padding - kernel) / stride + 1)
 
