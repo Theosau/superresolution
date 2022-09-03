@@ -34,7 +34,7 @@ if __name__ == "__main__":
     input_size = 32
     num_samples = 32
 
-    # beta loss weight parameter
+    # reconstruction loss weight parameter
     beta = 1
 
     # epochs
@@ -110,9 +110,17 @@ if __name__ == "__main__":
             # apply boundary conditions
             # reconstruction[:, 0:2, 0, :] = 0
             # reconstruction[:, 0:2, -1, :] = 0
-            # =====================loss======================
-            pde_loss = pde_loss_function.compute_loss(x_sample, y_sample, reconstruction[:, 0], reconstruction[:, 1], reconstruction[:, 2])
-            ae_loss = ae_loss_function(flow_sample, reconstruction)
+            # =====================losses======================
+            # PDE loss
+            if beta < 1:
+                pde_loss = pde_loss_function.compute_loss(x_sample, y_sample, reconstruction[:, 0], reconstruction[:, 1], reconstruction[:, 2])
+            else:
+                pde_loss = 0
+            # reconstruction loss
+            if beta > 0:
+                ae_loss = ae_loss_function(flow_sample, reconstruction)
+            else:
+                ae_loss = 0
             loss = beta * ae_loss + (1-beta) * pde_loss
             # ===================backward====================
             optimizer.zero_grad()
