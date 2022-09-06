@@ -5,6 +5,7 @@ from cnn_models import ConvAE
 from loss_functions import PDELoss
 from helper_functions import make_blocks_vectorized
 from torch.utils.data import DataLoader, Dataset
+from torch.utils.tensorboard import SummaryWriter
 
 class ChannelFLow(Dataset):
     def __init__(self, x, y, data):
@@ -40,6 +41,9 @@ if __name__ == "__main__":
     # epochs
     num_epochs = 1000
 
+    # model name
+    model_name = 'test'
+
     # file 
     file_name = 'channel_x1_256_y1_512_z1_256_step2'
 
@@ -73,7 +77,6 @@ if __name__ == "__main__":
     
     # data
     train_data = torch.cat([u, v, p], axis=-1)
-    # pdb.set_trace()
     train_data = train_data.permute((0, 3, 1, 2))
     val_data = torch.cat([u_val, v_val, p_val], axis=-1)
     val_data = val_data.permute((0, 3, 1, 2)) 
@@ -99,17 +102,29 @@ if __name__ == "__main__":
     ae_loss_function = torch.nn.MSELoss(reduction='mean')
     pde_loss_function = PDELoss()
 
+    # setup the writer
+    writer = SummaryWriter(log_dir='trainings/logs/' + model_name)
+    write_counter = 0
+    # initialize iterations loss to 0
+    its_loss = 0
+
     print('Setup the model, dataloader, datasets, loss funcitons, optimizers.')     
     for epoch in tqdm(range(num_epochs)):
+        
+        # iterate through the dataset
         for i, (x_sample, y_sample, flow_sample) in enumerate(train_dataloader):
             x_sample = x_sample.to(device=device, dtype=dtype)
             y_sample = y_sample.to(device=device, dtype=dtype)
             flow_sample = flow_sample.to(device=device, dtype=dtype) #.requires_grad_(True)  # move to device, e.g. GPU
             # ===================forward=====================
             reconstruction = model.forward(torch.cat([x_sample, y_sample, flow_sample], axis=1))
-            # apply boundary conditions
+            # apply boundary conditions - for now Dirichlet assuming boundary are noiseless
             # reconstruction[:, 0:2, 0, :] = 0
             # reconstruction[:, 0:2, -1, :] = 0
+            reconstruction[:, 0:2, 0, :] = flow_sample[:, 0:2, 0, :]
+            reconstruction[:, 0:2, -1, :] = flow_sample[:, 0:2, -1, :]
+            reconstruction[:, 0:2, 0, :] = flow_sample[:, 0:2, :, 0]
+            reconstruction[:, 0:2, -1, :] = flow_sample[:, 0:2, :, -1]
             # =====================losses======================
             # PDE loss
             if beta < 1:
@@ -127,5 +142,23 @@ if __name__ == "__main__":
             loss.backward()
             optimizer.step()
             print(loss)  
-            if i and not(i%1000):
+            
+            # update write iteration loss
+            its_loss += loss
+            
+            if i and not(i%10):
                 np.save('reconstuction.npy', reconstruction[0, 0].detach().cpu().numpy())
+                # write to tensorboard
+                writer.add_scalar("Loss/train", its_loss/10, write_counter)
+                its_loss = 0
+                write_counter += 1
+                print('Wrote value in write')
+        
+            
+        
+        
+        
+        # save model
+        if not(epoch%10):
+            torch.save(model.state_dict(), 'trainings/saved_models/' + model_name)
+            print(f'Saved model, epoch {i}.')
