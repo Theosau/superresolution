@@ -35,13 +35,13 @@ if __name__ == "__main__":
     reshape_size = 16
 
     # reconstruction loss weight parameter
-    beta = 0
+    beta = 1
 
     # epochs
     num_epochs = 1000
 
     # model name
-    model_name = 'test'
+    model_name = 'test_ae_only'
 
     # file 
     file_name = 'channel_x1_256_y1_512_z1_256_step2'
