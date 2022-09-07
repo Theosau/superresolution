@@ -36,7 +36,7 @@ if __name__ == "__main__":
     num_samples = 32
 
     # reconstruction loss weight parameter
-    beta = 1
+    beta = 0
 
     # epochs
     num_epochs = 1000
@@ -81,7 +81,6 @@ if __name__ == "__main__":
     val_data = torch.cat([u_val, v_val, p_val], axis=-1)
     val_data = val_data.permute((0, 3, 1, 2)) 
 
-    # pdb.set_trace()
     # datasets
     train_dataset = ChannelFLow(x, y, train_data)
     val_dataset = ChannelFLow(x_val, y_val, val_data)
