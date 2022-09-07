@@ -32,8 +32,7 @@ if __name__ == "__main__":
     print(device)
 
     # image size
-    input_size = 32
-    num_samples = 32
+    reshape_size = 16
 
     # reconstruction loss weight parameter
     beta = 0
@@ -54,7 +53,6 @@ if __name__ == "__main__":
     v_all = np.load('data/' + file_name + '/vs.npy')
     p_all = np.load('data/' + file_name + '/ps.npy')
 
-    reshape_size = 32
     x_all = np.reshape(make_blocks_vectorized(x_all, reshape_size), (-1, reshape_size, reshape_size))
     y_all = np.reshape(make_blocks_vectorized(y_all, reshape_size), (-1, reshape_size, reshape_size))
     u_all = np.reshape(make_blocks_vectorized(u_all, reshape_size), (-1, reshape_size, reshape_size))
@@ -91,7 +89,7 @@ if __name__ == "__main__":
     val_dataloader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
 
     # setup model
-    model = ConvAE(input_size=input_size)
+    model = ConvAE(input_size=reshape_size)
     model = model.to(device=device)
     model.train()
     print(sum(p.numel() for p in model.parameters()))
@@ -122,8 +120,8 @@ if __name__ == "__main__":
             # reconstruction[:, 0:2, -1, :] = 0
             reconstruction[:, 0:2, 0, :] = flow_sample[:, 0:2, 0, :]
             reconstruction[:, 0:2, -1, :] = flow_sample[:, 0:2, -1, :]
-            reconstruction[:, 0:2, 0, :] = flow_sample[:, 0:2, :, 0]
-            reconstruction[:, 0:2, -1, :] = flow_sample[:, 0:2, :, -1]
+            reconstruction[:, 0:2, :, 0] = flow_sample[:, 0:2, :, 0]
+            reconstruction[:, 0:2, :, -1] = flow_sample[:, 0:2, :, -1]
             # =====================losses======================
             # PDE loss
             if beta < 1:
