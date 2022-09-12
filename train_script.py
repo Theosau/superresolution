@@ -17,9 +17,10 @@ class ChannelFlow(Dataset):
         return len(os.listdir('data/example/'+ self.dataset +'/')) // 3
 
     def __getitem__(self, idx):
-        self.x = torch.tensor(np.load('data/example/' + self.dataset + f'/xs_sample{idx}.npy'), requires_grad=True)
-        self.y = torch.tensor(np.load('data/example/' + self.dataset + f'/ys_sample{idx}.npy'), requires_grad=True)
-        self.slice = torch.tensor(np.load(f'data/example/' + self.dataset + f'/sample{idx}.npy'), requires_grad=True)
+        req_grad = True if self.dataset=='train' else False 
+        self.x = torch.tensor(np.load('data/example/' + self.dataset + f'/xs_sample{idx}.npy'), requires_grad=req_grad)
+        self.y = torch.tensor(np.load('data/example/' + self.dataset + f'/ys_sample{idx}.npy'), requires_grad=req_grad)
+        self.slice = torch.tensor(np.load(f'data/example/' + self.dataset + f'/sample{idx}.npy'), requires_grad=req_grad)
         return self.x, self.y, self.slice
 
 if __name__ == "__main__":
@@ -49,7 +50,7 @@ if __name__ == "__main__":
     # dataloaders
     batch_size = 8
     train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-    val_dataloader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
+    val_dataloader = DataLoader(val_dataset, batch_size=batch_size, shuffle=True)
 
     # setup model
     model = ConvAE(input_size=reshape_size, channels_init=24)
