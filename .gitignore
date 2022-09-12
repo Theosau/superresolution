@@ -6,4 +6,10 @@ __pycache__*
 checks/
 *.sh
 *out
-/trainings*
+
+!trainings/
+trainings/*
+!trainings/saved_models/
+
+trainings/saved_models/*
+!trainings/saved_models/current_model
