@@ -13,7 +13,7 @@ u_all = np.load('data/' + file_name + '/us.npy')
 v_all = np.load('data/' + file_name + '/vs.npy')
 p_all = np.load('data/' + file_name + '/ps.npy')
 
-reshape_size = 16
+reshape_size = 8
 
 x_all = np.reshape(make_blocks_vectorized(x_all, reshape_size), (-1, reshape_size, reshape_size))
 y_all = np.reshape(make_blocks_vectorized(y_all, reshape_size), (-1, reshape_size, reshape_size))
@@ -50,11 +50,11 @@ val_y_np = y_val.detach().numpy()
 val_data_np = val_data.detach().numpy()
 
 for i in tqdm(range(len(train_data_np))):
-    np.save(f'data/example/train/sample{i}.npy', train_data_np[i])
-    np.save(f'data/example/train/xs_sample{i}.npy', train_x_np[i])
-    np.save(f'data/example/train/ys_sample{i}.npy', train_y_np[i])
+    np.save(f'data/example8/train/sample{i}.npy', train_data_np[i])
+    np.save(f'data/example8/train/xs_sample{i}.npy', train_x_np[i])
+    np.save(f'data/example8/train/ys_sample{i}.npy', train_y_np[i])
 
 for i in tqdm(range(len(val_data_np))):
-    np.save(f'data/example/val/sample{i}.npy', val_data_np[i])
-    np.save(f'data/example/val/xs_sample{i}.npy', val_x_np[i])
-    np.save(f'data/example/val/ys_sample{i}.npy', val_y_np[i])
+    np.save(f'data/example8/val/sample{i}.npy', val_data_np[i])
+    np.save(f'data/example8/val/xs_sample{i}.npy', val_x_np[i])
+    np.save(f'data/example8/val/ys_sample{i}.npy', val_y_np[i])

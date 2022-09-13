@@ -1,29 +1,41 @@
-import torch, pdb, os
+import torch, pdb, os, yaml
 import numpy as np
 from tqdm import tqdm
-from cnn_models import ConvAE
+from cnn_models import ConvAE, ConvUNet
 from loss_functions import PDELoss
 from torch.utils.data import DataLoader, Dataset
 from torch.utils.tensorboard import SummaryWriter
 from torch.optim.lr_scheduler import ExponentialLR
+from torchvision.transforms.functional import normalize
 
 class ChannelFlow(Dataset):
-    def __init__(self, dataset='train'):
+    def __init__(self, dataset='train', data_path='example/'):
         super(ChannelFlow, self).__init__()
         self.dataset= dataset
+        self.data_path = data_path
         return
     
     def __len__(self):
-        return len(os.listdir('data/example/'+ self.dataset +'/')) // 3
+        return len(os.listdir('data/' + self.data_path + self.dataset +'/')) // 3
 
     def __getitem__(self, idx):
         req_grad = True if self.dataset=='train' else False 
-        self.x = torch.tensor(np.load('data/example/' + self.dataset + f'/xs_sample{idx}.npy'), requires_grad=req_grad)
-        self.y = torch.tensor(np.load('data/example/' + self.dataset + f'/ys_sample{idx}.npy'), requires_grad=req_grad)
-        self.slice = torch.tensor(np.load(f'data/example/' + self.dataset + f'/sample{idx}.npy'), requires_grad=req_grad)
+        self.x = torch.tensor(np.load('data/' + self.data_path + self.dataset + f'/xs_sample{idx}.npy'), requires_grad=req_grad).unsqueeze(dim=0)
+        self.y = torch.tensor(np.load('data/' + self.data_path + self.dataset + f'/ys_sample{idx}.npy'), requires_grad=req_grad).unsqueeze(dim=0)
+        self.slice = torch.tensor(np.load(f'data/' + self.data_path + self.dataset + f'/sample{idx}.npy'), requires_grad=req_grad).unsqueeze(dim=0)
+
+        # interpolation
+        self.x = torch.nn.functional.interpolate(self.x, scale_factor=2, mode='bilinear').squeeze(dim=0)
+        self.y = torch.nn.functional.interpolate(self.y, scale_factor=2, mode='bilinear').squeeze(dim=0)
+        self.slice = torch.nn.functional.interpolate(self.slice, scale_factor=2, mode='bilinear').squeeze(dim=0)
+
         return self.x, self.y, self.slice
 
 if __name__ == "__main__":
+
+    # loading the model config
+    with open('training_config.yml') as file:
+        config = yaml.safe_load(file)
 
     # setting device and data types
     dtype = torch.float32
@@ -31,29 +43,31 @@ if __name__ == "__main__":
     print(device)
 
     # image size
-    reshape_size = 16
+    reshape_size = config['reshape_size']
+    data_path = config['data_path']
 
     # reconstruction loss weight parameter
-    beta = 0
-    alpha = 0.25
+    beta = config['beta']
+    # pde loss weight parameter
+    alpha = config['beta']
 
     # epochs
-    num_epochs = 1000
+    num_epochs = config['num_epochs']
 
     # model name
-    model_name = 'pde_only_cpu_weighted_boundary_unet_like'
+    model_name = config['model_name']
 
     # datasets
-    train_dataset = ChannelFlow(dataset='train')
-    val_dataset = ChannelFlow(dataset='val')
+    train_dataset = ChannelFlow(dataset='train', data_path=data_path)
+    val_dataset = ChannelFlow(dataset='val', data_path=data_path)
 
     # dataloaders
-    batch_size = 8
+    batch_size = config['batch_size']
     train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
     val_dataloader = DataLoader(val_dataset, batch_size=batch_size, shuffle=True)
 
     # setup model
-    model = ConvAE(input_size=reshape_size, channels_init=24)
+    model = ConvUNet(input_size=reshape_size, channels_init=config['channels_init'])
     if 'continued' in model_name:
         checkpoint = torch.load('trainings/saved_models/pde_only_cpu_scheduler_batch8')
         model.load_state_dict(checkpoint['model_state_dict'])
@@ -62,10 +76,10 @@ if __name__ == "__main__":
     print(sum(p.numel() for p in model.parameters()))
 
     # Train the model
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+    optimizer = torch.optim.Adam(model.parameters(), lr=config['learning_rate'])
     if 'continued' in model_name:
         optimizer.load_state_dict(checkpoint['optimizer_state_dict'])  
-    scheduler = ExponentialLR(optimizer, 0.99)
+    scheduler = ExponentialLR(optimizer, config['scheduler_gamma'])
     recon_loss_function = torch.nn.MSELoss(reduction='mean')
     pde_loss_function = PDELoss()
 
@@ -91,15 +105,23 @@ if __name__ == "__main__":
             y_sample = y_sample.to(device=device, dtype=dtype)
             flow_sample = flow_sample.to(device=device, dtype=dtype) # move to device, e.g. GPU
 
+            x_sample_norm = normalize(x_sample, (0), (1))
+            y_sample_norm = normalize(y_sample, (0), (1))
+
+            means = flow_sample.mean(dim=(-1, -2), keepdim=True)
+            stds = flow_sample.std(dim=(-1, -2), keepdim=True)
+            flow_sample_norm = (flow_sample - means) / stds
+
             # ===================forward=====================
-            reconstruction = model.forward(torch.cat([x_sample, y_sample, flow_sample], axis=1))
+            reconstruction_norm  = model.forward(torch.cat([x_sample_norm, y_sample_norm, flow_sample_norm], axis=1))
+            reconstruction = reconstruction_norm * stds + means
 
             # =====================losses======================
             # apply boundary conditions loss - for now Dirichlet assuming boundary are noiseless
-            boundary_loss = recon_loss_function(reconstruction[:, 0:2, 0, :], flow_sample[:, 0:2, 0, :]) + \
-                            recon_loss_function(reconstruction[:, 0:2, -1, :], flow_sample[:, 0:2, -1, :]) + \
-                            recon_loss_function(reconstruction[:, 0:2, :, 0], flow_sample[:, 0:2, :, 0]) + \
-                            recon_loss_function(reconstruction[:, 0:2, :, -1], flow_sample[:, 0:2, :, -1])
+            boundary_loss = recon_loss_function(reconstruction_norm[:, 0:2, 0, :], flow_sample_norm[:, 0:2, 0, :]) + \
+                            recon_loss_function(reconstruction_norm[:, 0:2, -1, :], flow_sample_norm[:, 0:2, -1, :]) + \
+                            recon_loss_function(reconstruction_norm[:, 0:2, :, 0], flow_sample_norm[:, 0:2, :, 0]) + \
+                            recon_loss_function(reconstruction_norm[:, 0:2, :, -1], flow_sample_norm[:, 0:2, :, -1])
             # PDE loss
             if beta < 1:
                 pde_loss = pde_loss_function.compute_loss(x_sample, y_sample, reconstruction[:, 0], reconstruction[:, 1], reconstruction[:, 2])
@@ -107,7 +129,7 @@ if __name__ == "__main__":
                 pde_loss = 0
             # reconstruction loss
             if beta > 0:
-                recon_loss = recon_loss_function(flow_sample, reconstruction)
+                recon_loss = recon_loss_function(flow_sample_norm, reconstruction_norm)
             else:
                 recon_loss = 0
             loss = beta * recon_loss + (1-beta) * (alpha * pde_loss + (1 - alpha) * boundary_loss)
@@ -152,6 +174,7 @@ if __name__ == "__main__":
             torch.save({
                         'model_state_dict': model.state_dict(),
                         'optimizer_state_dict': optimizer.state_dict(),
-                        'write_counter': write_counter, 
+                        'write_counter': write_counter,
+                        'config': config,
                         }, 'trainings/saved_models/' + model_name)
             print(f'Saved model, epoch {i}.')
