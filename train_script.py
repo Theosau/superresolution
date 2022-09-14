@@ -7,6 +7,7 @@ from torch.utils.data import DataLoader, Dataset
 from torch.utils.tensorboard import SummaryWriter
 from torch.optim.lr_scheduler import ExponentialLR
 from torchvision.transforms.functional import normalize
+from torch.nn.functional import interpolate
 
 class ChannelFlow(Dataset):
     def __init__(self, dataset='train', data_path='example/'):
@@ -20,14 +21,9 @@ class ChannelFlow(Dataset):
 
     def __getitem__(self, idx):
         req_grad = True if self.dataset=='train' else False 
-        self.x = torch.tensor(np.load('data/' + self.data_path + self.dataset + f'/xs_sample{idx}.npy'), requires_grad=req_grad).unsqueeze(dim=0)
-        self.y = torch.tensor(np.load('data/' + self.data_path + self.dataset + f'/ys_sample{idx}.npy'), requires_grad=req_grad).unsqueeze(dim=0)
-        self.slice = torch.tensor(np.load(f'data/' + self.data_path + self.dataset + f'/sample{idx}.npy'), requires_grad=req_grad).unsqueeze(dim=0)
-
-        # interpolation
-        self.x = torch.nn.functional.interpolate(self.x, scale_factor=2, mode='bilinear').squeeze(dim=0)
-        self.y = torch.nn.functional.interpolate(self.y, scale_factor=2, mode='bilinear').squeeze(dim=0)
-        self.slice = torch.nn.functional.interpolate(self.slice, scale_factor=2, mode='bilinear').squeeze(dim=0)
+        self.x = torch.tensor(np.load('data/' + self.data_path + self.dataset + f'/xs_sample{idx}.npy'), requires_grad=req_grad)
+        self.y = torch.tensor(np.load('data/' + self.data_path + self.dataset + f'/ys_sample{idx}.npy'), requires_grad=req_grad)
+        self.slice = torch.tensor(np.load(f'data/' + self.data_path + self.dataset + f'/sample{idx}.npy'), requires_grad=req_grad)
 
         return self.x, self.y, self.slice
 
@@ -44,6 +40,7 @@ if __name__ == "__main__":
 
     # image size
     reshape_size = config['reshape_size']
+    scale_factor = config['scale_factor']
     data_path = config['data_path']
 
     # reconstruction loss weight parameter
@@ -88,7 +85,7 @@ if __name__ == "__main__":
     write_counter = 0
     if 'continued' in model_name:
         write_counter = checkpoint['write_counter'] 
-    
+
     # initialize iterations loss to 0
     its_loss = 0
     its_pde_loss = 0
@@ -105,15 +102,17 @@ if __name__ == "__main__":
             y_sample = y_sample.to(device=device, dtype=dtype)
             flow_sample = flow_sample.to(device=device, dtype=dtype) # move to device, e.g. GPU
 
-            x_sample_norm = normalize(x_sample, (0), (1))
-            y_sample_norm = normalize(y_sample, (0), (1))
+            x_sample = interpolate(x_sample, scale_factor=scale_factor, mode='bilinear')
+            y_sample = interpolate(y_sample, scale_factor=scale_factor, mode='bilinear')
 
             means = flow_sample.mean(dim=(-1, -2), keepdim=True)
             stds = flow_sample.std(dim=(-1, -2), keepdim=True)
             flow_sample_norm = (flow_sample - means) / stds
 
             # ===================forward=====================
-            reconstruction_norm  = model.forward(torch.cat([x_sample_norm, y_sample_norm, flow_sample_norm], axis=1))
+            reconstruction_norm_upsampled  = model.forward(torch.cat([normalize(x_sample, (0), (1)), normalize(y_sample, (0), (1)), interpolate(flow_sample_norm, scale_factor=scale_factor, mode='bilinear')], axis=1))
+            reconstruction_upsampled = reconstruction_norm_upsampled * stds + means
+            reconstruction_norm = interpolate(reconstruction_norm_upsampled, scale_factor=1/scale_factor, mode='bilinear')
             reconstruction = reconstruction_norm * stds + means
 
             # =====================losses======================
@@ -122,9 +121,11 @@ if __name__ == "__main__":
                             recon_loss_function(reconstruction_norm[:, 0:2, -1, :], flow_sample_norm[:, 0:2, -1, :]) + \
                             recon_loss_function(reconstruction_norm[:, 0:2, :, 0], flow_sample_norm[:, 0:2, :, 0]) + \
                             recon_loss_function(reconstruction_norm[:, 0:2, :, -1], flow_sample_norm[:, 0:2, :, -1])
+
             # PDE loss
+            # note x and y samples are upsampled
             if beta < 1:
-                pde_loss = pde_loss_function.compute_loss(x_sample, y_sample, reconstruction[:, 0], reconstruction[:, 1], reconstruction[:, 2])
+                pde_loss = pde_loss_function.compute_loss(x_sample, y_sample, reconstruction_upsampled[:, 0], reconstruction_upsampled[:, 1], reconstruction_upsampled[:, 2])
             else:
                 pde_loss = 0
             # reconstruction loss
@@ -164,7 +165,7 @@ if __name__ == "__main__":
                 its_boundary_loss = 0
 
                 # plot images
-                img_batch = torch.zeros((2, 1, reshape_size, reshape_size))
+                img_batch = torch.zeros((2, 1, reshape_size//2, reshape_size//2))
                 img_batch[0, 0] = flow_sample[0, 0, ...]
                 img_batch[1, 0] = reconstruction[0, 0, ...]
                 writer.add_images('example reconstruction', img_batch, 0, dataformats='NCHW')
