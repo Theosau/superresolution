@@ -5,6 +5,7 @@ data_path: example8/
 
 # model 
 channels_init: 16
+final_out_channels: 20
 model_name: recon_small_pde_large
 
 # hyper parameters
