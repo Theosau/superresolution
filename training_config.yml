@@ -1,11 +1,10 @@
 # data
-reshape_size: 16
-scale_factor: 2
+nvox: 64
+nsamples: 500
 data_path: example8/
 
 # model 
 channels_init: 16
-final_out_channels: 20
 model_name: recon_small_pde_large
 
 # hyper parameters
@@ -14,9 +13,19 @@ batch_size: 8
 learning_rate: 0.001
 
 # loss functions
-beta: 0.5
-alpha: 0.25
+boundary_recon: 0.85
+flow_pde: 0.95
+background_recon: 1.0
+
+# optimizer
 scheduler_gamma: 0.99
+
+# navier-stokes parameters
+rho: 1
+mu: 1
+gx: 0
+gy: 0
+gz: 0
 
 
 
