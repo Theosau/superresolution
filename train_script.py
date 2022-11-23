@@ -40,7 +40,7 @@ if __name__ == "__main__":
     # volume size
     nvox = config["nvox"]
     nsamples = config["nsamples"]
-    samples, segmentation_maps = generate_dataset(nsamples=nsamples, npix=nvox)
+    samples, segmentation_maps = generate_dataset(nsamples=nsamples, nvox=nvox)
 
     # boundary loss weights parameters
     boundary_recon = config["boundary_recon"]
@@ -57,7 +57,6 @@ if __name__ == "__main__":
 
     # model name
     model_name = config["model_name"]
-    final_out_channels = config["final_out_channels"]
 
     #split data
     len_train = int(0.8*len(samples))
@@ -108,16 +107,16 @@ if __name__ == "__main__":
     # setup the writer
     writer = SummaryWriter(log_dir="trainings/logs/" + model_name)
 
-    # initialize iterations loss to 0
-    epoch_total_loss = 0
-    epoch_recon_loss = 0
-    epoch_pde_loss = 0
-
     print("Setup the model, dataloader, datasets, loss funcitons, optimizers.")     
     for epoch in tqdm(range(num_epochs)):
 
+        # initialize iterations loss to 0
+        epoch_total_loss = 0
+        epoch_recon_loss = 0
+        epoch_pde_loss = 0
+
         # iterate through the dataset
-        for flow_sample, map_sample in train_dataloader:
+        for flow_sample, map_sample in tqdm(train_dataloader):
             flow_sample = flow_sample.to(device=device, dtype=dtype) # move to device, e.g. GPU
             map_sample = map_sample.to(device=device, dtype=dtype)
 
@@ -127,25 +126,24 @@ if __name__ == "__main__":
             # =====================forward======================
             # compute latent vectors
             latent_vectors = model(flow_sample)
-            latent_vectors.shape
 
             # select same number of points per image to sample, unsqueeze at dim 1 to get the shape
-            # num_images x 1 x num_points x coordinates_size
+            # batch_size x 1 x num_points x coordinates_size
             pts = torch.Tensor(np.array([get_points(map_one.squeeze()) for map_one in map_sample])).unsqueeze(1).unsqueeze(1)
             # normalize the points to be in -1, 1 (required by grid_sample)
             pts = 2*(pts/(nvox-1)) - 1
             pts.shape
 
-            # move points away from the input voxel locations and load them
-            pts_rand = torch.clip(pts + (torch.rand_like(pts)*2-1)/(2*nvox), min=-1, max=1) # play around to move more or less
+            # move points away from the exact input voxel locations and load them
+            pts_rand = torch.clip(pts + (torch.rand_like(pts)*2-1)/(2*nvox), min=-1, max=1) # play around to move more or less around voxels
+            # features, segmentation maps, flow values
             pts_vectors_rand, pts_maps_rand, pts_flows_rand = pp3d(latent_vectors, map_sample, flow_sample, pts_rand)
             pts_locations_rand = pts_rand.squeeze()
             pts_locations_rand.requires_grad = True # needed for the PDE loss
 
-            # get the feature vectors for each sampled point
+            # create feature vectors for each sampled point
             feature_vector = torch.cat([pts_locations_rand, pts_maps_rand, pts_vectors_rand], dim=-1) 
-            feature_vector = feature_vector.reshape((-1, model.channels_out + 4)) # num_features + x, y, z, seg inter
-            feature_vector.shape
+            feature_vector = feature_vector.reshape((-1, model.channels_out + 4)) # x, y, z, seg inter, features
 
             # split input features to allow taking separate derivatives
             inputs = [feature_vector[..., i:i+1] for i in range(feature_vector.shape[-1])]
@@ -169,9 +167,8 @@ if __name__ == "__main__":
 
             # compute the loss
             pde_loss = weights[:, 0]*pde_loss_function.compute_loss(inputs, outputs_linear)
-            recon_loss = weights[:, 1]*(recon_loss_function(pts_flows_rand, outputs_linear))
+            recon_loss = weights[:, 1]*recon_loss_function.compute_loss(pts_flows_rand, outputs_linear)
             loss = torch.mean(pde_loss + recon_loss)
-            print(loss.item())
 
             # ===================backward====================
             loss.backward()
@@ -179,8 +176,8 @@ if __name__ == "__main__":
 
             # update write iteration loss
             epoch_total_loss += loss.item()
-            epoch_recon_loss += pde_loss.item()
-            epoch_pde_loss += recon_loss.item()
+            epoch_recon_loss += recon_loss.mean().item()
+            epoch_pde_loss += pde_loss.mean().item()
 
         # at the end of each epoch
         scheduler.step()
@@ -189,6 +186,7 @@ if __name__ == "__main__":
         writer.add_scalar("Loss/train", epoch_total_loss, epoch)
         writer.add_scalar("Reconstruction Loss/train", epoch_recon_loss, epoch)
         writer.add_scalar("PDE Loss/train", epoch_pde_loss, epoch)
+        print("Total loss: ", epoch_total_loss, "Reconstruction loss: ", epoch_recon_loss, "PDE loss: ", epoch_pde_loss)
 
         # save model
         torch.save(
