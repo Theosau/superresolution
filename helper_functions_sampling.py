@@ -4,7 +4,6 @@ import torch.nn.functional as F
 
 
 def get_points(map_one, nbackground=2, nboundary=10, nflow=10):
-    ids_background = np.zeros((2))
     
     # separate each points
     background_points = (map_one==0).nonzero()
@@ -25,6 +24,24 @@ def get_points(map_one, nbackground=2, nboundary=10, nflow=10):
     axis=0)
     
     return pts_one
+
+
+def get_all_points(map_one):
+    
+    # separate each points
+    ids_background = (map_one==0).nonzero()
+    ids_boundary = (map_one==1).nonzero()
+    ids_flow = (map_one==2).nonzero()
+    
+    # concatenate ids
+    pts_all = np.concatenate([
+        ids_background,
+        ids_boundary,
+        ids_flow
+    ],
+    axis=0)
+    
+    return pts_all
 
 
 class PointPooling3D(torch.nn.Module):
