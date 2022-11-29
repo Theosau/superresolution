@@ -16,12 +16,12 @@ def get_points(map_one, nbackground=2, nboundary=10, nflow=10):
     ids_flow = np.random.choice(range(len(flow_points)), size=nflow, replace=False)
     
     # concatenate ids
-    pts_one = np.concatenate([
+    pts_one = torch.cat([
         background_points[ids_background],
         boundary_points[ids_boundary],
         flow_points[ids_flow]
     ],
-    axis=0)
+    dim=0)
     
     return pts_one
 
@@ -34,12 +34,12 @@ def get_all_points(map_one):
     ids_flow = (map_one==2).nonzero()
     
     # concatenate ids
-    pts_all = np.concatenate([
+    pts_all = torch.cat([
         ids_background,
         ids_boundary,
         ids_flow
     ],
-    axis=0)
+    dim=0)
     
     return pts_all
 

@@ -129,11 +129,10 @@ if __name__ == "__main__":
 
             # select same number of points per image to sample, unsqueeze at dim 1 to get the shape
             # batch_size x 1 x num_points x coordinates_size
-            pts = torch.Tensor(np.array([get_points(map_one.squeeze()) for map_one in map_sample])).unsqueeze(1).unsqueeze(1)
+            pts = torch.cat([get_points(map_one.squeeze()).unsqueeze(0) for map_one in map_sample], dim=0).unsqueeze(1).unsqueeze(1)
             # probably change the above to have it all on the gpu / in tensors
             # normalize the points to be in -1, 1 (required by grid_sample)
             pts = 2*(pts/(nvox-1)) - 1
-            pts.shape
 
             # move points away from the exact input voxel locations and load them
             pts_rand = torch.clip(pts + (torch.rand_like(pts)*2-1)/(2*nvox), min=-1, max=1) # play around to move more or less around voxels

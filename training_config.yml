@@ -1,11 +1,10 @@
 # data
 nvox: 64
 nsamples: 500
-data_path: example8/
 
 # model 
 channels_init: 16
-model_name: recon_small_pde_large
+model_name: test_gpu
 
 # hyper parameters
 num_epochs: 1000
