@@ -1,7 +1,7 @@
 .ipynb_checkpoints*
 .DS_Store
 TurbCutout.ipynb
-data/*
+data/channel*
 __pycache__*
 checks/
 *.sh
