@@ -160,11 +160,11 @@ if __name__ == "__main__":
             seg_interpolations_rand = pts_maps_rand.reshape((-1, 1))
             weights = torch.ones((len(seg_interpolations_rand), num_loss_terms), dtype=torch.float, device=device)
             # boundary weights
-            weights[(seg_interpolations_rand>=0.75).squeeze(), :] = torch.Tensor([boundary_pde, boundary_recon], device=device)
+            weights[(seg_interpolations_rand>=0.75).squeeze(), :] = torch.tensor([boundary_pde, boundary_recon], device=device)
             # flow weights
-            weights[(seg_interpolations_rand>=1.25).squeeze(), :] = torch.Tensor([flow_pde, flow_recon], device=device)
+            weights[(seg_interpolations_rand>=1.25).squeeze(), :] = torch.tensor([flow_pde, flow_recon], device=device)
             # background weights
-            weights[(seg_interpolations_rand<0.5).squeeze(), :] = torch.Tensor([background_pde, background_recon], device=device)
+            weights[(seg_interpolations_rand<0.5).squeeze(), :] = torch.tensor([background_pde, background_recon], device=device)
 
             # compute the loss
             pde_loss = weights[:, 0]*pde_loss_function.compute_loss(inputs, outputs_linear)
