@@ -158,7 +158,7 @@ if __name__ == "__main__":
             # get the losses weights for each point
             num_loss_terms = 2
             seg_interpolations_rand = pts_maps_rand.reshape((-1, 1))
-            weights = torch.ones((len(seg_interpolations_rand), num_loss_terms), dtype=torch.float)
+            weights = torch.ones((len(seg_interpolations_rand), num_loss_terms), dtype=torch.float, device=device)
             # boundary weights
             weights[(seg_interpolations_rand>=0.75).squeeze(), :] = torch.Tensor([boundary_pde, boundary_recon])
             # flow weights
