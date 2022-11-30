@@ -148,7 +148,7 @@ if __name__ == "__main__":
             # split input features to allow taking separate derivatives
             inputs = [feature_vector[..., i:i+1] for i in range(feature_vector.shape[-1])]
             x_ = torch.cat(inputs, axis=-1)
-            
+            x_ = x_.to(device=device, dtype=dtype)
             # forward through linear model
             outputs_linear = smallLinear(x_)
 
