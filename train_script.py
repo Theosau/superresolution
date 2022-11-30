@@ -82,6 +82,7 @@ if __name__ == "__main__":
     print("There are ", sum(p.numel() for p in model.parameters()), " parameters to train.")
 
     smallLinear = SmallLinear(num_features=model.channels_out+4, num_outputs=4) # + x, y, segmentation label
+    smallLinear = smallLinear.to(device=device)
     smallLinear.train()
     print("There are ", sum(p.numel() for p in smallLinear.parameters()), " parameters to train.")
     
@@ -148,7 +149,7 @@ if __name__ == "__main__":
             # split input features to allow taking separate derivatives
             inputs = [feature_vector[..., i:i+1] for i in range(feature_vector.shape[-1])]
             x_ = torch.cat(inputs, axis=-1)
-            x_ = x_.to(device=device, dtype=dtype)
+
             # forward through linear model
             outputs_linear = smallLinear(x_)
 
