@@ -1,4 +1,4 @@
-import torch, pdb, os, yaml
+import torch, pdb, os, yaml, shutil
 import numpy as np
 from tqdm import tqdm
 from networks_models import ConvUNetBis, SmallLinear
@@ -32,6 +32,12 @@ if __name__ == "__main__":
     with open("training_config.yml") as file:
         config = yaml.safe_load(file)
 
+    # model name
+    model_name = config["model_name"]
+
+    # save config file for reload
+    shutil.copyfile("training_config.yml", f"trainings/config_models/{model_name}.yml")
+
     # setting device and data types
     dtype = torch.float32
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -55,9 +61,6 @@ if __name__ == "__main__":
     # epochs
     num_epochs = config["num_epochs"]
 
-    # model name
-    model_name = config["model_name"]
-
     #split data
     len_train = int(0.8*len(samples))
     train_data = samples[:len_train]
@@ -76,7 +79,11 @@ if __name__ == "__main__":
     val_dataloader = DataLoader(val_dataset, batch_size=batch_size, shuffle=True)
 
     # setup models
-    model = ConvUNetBis(input_size=64, channels_in=train_data.shape[1], channels_init=4)
+    model = ConvUNetBis(input_size=64, 
+        channels_in=train_data.shape[1], 
+        channels_init=config["channels_init"],
+        channels_out=config["channels_out"]
+    )
     model = model.to(device=device)
     model.train()
     print("There are ", sum(p.numel() for p in model.parameters()), " parameters to train.")

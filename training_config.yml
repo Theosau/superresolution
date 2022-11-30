@@ -4,11 +4,12 @@ nsamples: 500
 
 # model 
 channels_init: 16
-model_name: test_gpu
+channels_out: 30
+model_name: test_gpu_channels_out_30_batch_size_32
 
 # hyper parameters
 num_epochs: 1000
-batch_size: 8
+batch_size: 32
 learning_rate: 1.0e-3
 
 # loss functions

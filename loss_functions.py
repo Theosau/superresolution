@@ -33,13 +33,13 @@ class PDELoss():
         # commpute derivatives of pressure term
         dpdx, dpdy, dpdz = torch.autograd.grad(outputs[:, 3], [inputs[0], inputs[1], inputs[2]], grad_outputs=torch.ones_like(outputs[:, 1]).view(-1), retain_graph=True, create_graph=True)
 
-
-        # continuity loss - NO GRAVITY FOR NOW
+        # continuity loss
         u = outputs[:,0]
         v = outputs[:,1]
         w = outputs[:,2]
         continuity_residual = (dudx.squeeze() + dvdy.squeeze() + dwdz.squeeze())**2
         
+        # residual loss - NO GRAVITY FOR NOW
         nse_x_residual = (
             self.rho * ( u*(dudx.squeeze()) + v*(dudy.squeeze()) + w*(dudz.squeeze()) ) + 
             dpdx.squeeze() + self.gx*self.rho - 
