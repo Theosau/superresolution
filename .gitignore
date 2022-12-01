@@ -10,7 +10,11 @@ checks/
 
 !trainings/
 trainings/*
-!trainings/saved_models/
 
+!trainings/saved_models/
 trainings/saved_models/*
 !trainings/saved_models/current_model
+
+!trainings/config_models/
+trainings/config_models/*
+!trainings/config_models/current_model.yml
