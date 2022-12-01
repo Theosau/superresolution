@@ -113,9 +113,11 @@ class SmallLinear(nn.Module):
 
     def __init__(self, num_features, num_outputs):
         super(SmallLinear, self).__init__()
-        self.lin1 = nn.Linear(num_features, 15)
-        self.lin2 = nn.Linear(15, 10)
-        self.lin3 = nn.Linear(10, num_outputs)
+        self.lin1 = nn.Linear(num_features, 30)
+        self.lin2 = nn.Linear(30, 20)
+        self.lin3 = nn.Linear(20, 15)
+        self.lin4 = nn.Linear(15, 10)
+        self.lin5 = nn.Linear(10, num_outputs)
         self.activation = nn.Tanh()
 
     def forward(self, x):
@@ -124,5 +126,9 @@ class SmallLinear(nn.Module):
         x = self.lin2(x)
         x = self.activation(x)
         x = self.lin3(x)
+        x = self.activation(x)
+        x = self.lin4(x)
+        x = self.activation(x)
+        x = self.lin5(x)
         return x
 

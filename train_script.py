@@ -102,8 +102,9 @@ if __name__ == "__main__":
         model.load_state_dict(checkpoint["model_state_dict"])
         smallLinear.load_state_dict(checkpoint["linear_model_state_dict"])
         optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
-        epoch = checkpoint["epoch"] 
-    scheduler = ExponentialLR(optimizer, config["scheduler_gamma"])
+        epoch = checkpoint["epoch"]
+    if config["scheduler"]:
+        scheduler = ExponentialLR(optimizer, config["scheduler_gamma"])
     
     # set up losses
     recon_loss_function = ReconLoss()
@@ -137,8 +138,11 @@ if __name__ == "__main__":
 
             # select same number of points per image to sample, unsqueeze at dim 1 to get the shape
             # batch_size x 1 x num_points x coordinates_size
-            pts = torch.cat([get_points(map_one.squeeze()).unsqueeze(0) for map_one in map_sample], dim=0).unsqueeze(1).unsqueeze(1)
-            # probably change the above to have it all on the gpu / in tensors
+            pts = torch.cat(
+                [
+                    get_points(map_one.squeeze(), nbackground=20, nboundary=100, nflow=100).unsqueeze(0) for map_one in map_sample
+                ], 
+                dim=0).unsqueeze(1).unsqueeze(1)
             # normalize the points to be in -1, 1 (required by grid_sample)
             pts = 2*(pts/(nvox-1)) - 1
 
@@ -188,7 +192,8 @@ if __name__ == "__main__":
             epoch_pde_loss += pde_loss.mean().item()
 
         # at the end of each epoch
-        scheduler.step()
+        if config["scheduler"]:
+            scheduler.step()
 
         # write to tensorboard
         writer.add_scalar("Loss/train", epoch_total_loss, epoch)

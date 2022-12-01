@@ -4,8 +4,8 @@ nsamples: 500
 
 # model 
 channels_init: 16
-channels_out: 30
-model_name: test_gpu_channels_out_30_batch_size_32
+channels_out: 40
+model_name: test_gpu_channels_out_40_long_training
 
 # hyper parameters
 num_epochs: 1000
@@ -18,6 +18,7 @@ flow_pde: 0.95
 background_recon: 1.0
 
 # optimizer
+scheduler: False
 scheduler_gamma: 0.99
 
 # navier-stokes parameters
