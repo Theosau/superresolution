@@ -5,7 +5,7 @@ nsamples: 500
 # model 
 channels_init: 16
 channels_out: 40
-model_name: test_gpu_channels_out_40_long_training
+model_name: current_model
 
 # hyper parameters
 num_epochs: 1000
