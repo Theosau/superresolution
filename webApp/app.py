@@ -62,17 +62,19 @@ recon_loss_function = ReconLoss()
 pde_loss_function = PDELoss(rho=config["rho"], mu=config["mu"], gx=config["gx"], gy=config["gy"], gz=config["gz"])
 
 # volume size
-nvox = config["nvox"]
-nsamples = 5 #config["nsamples"]
-samples, segmentation_maps = generate_dataset(nsamples=nsamples, nvox=nvox)
-val_dataset = PoseuilleFlowAnalytic(samples, segmentation_maps)
-batch_size = 5 #config["batch_size"]
-val_dataloader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
+# nvox = config["nvox"]
+# nsamples = 100 #config["nsamples"]
+# samples, segmentation_maps = generate_dataset(nsamples=nsamples, nvox=nvox)
+# np.save('poiseuille_volume.npy', samples)
+# np.save('poiseuille_volume_segmentation.npy', segmentation_maps)
+# val_dataset = PoseuilleFlowAnalytic(samples, segmentation_maps)
+# batch_size = 1 #config["batch_size"]
+# val_dataloader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
 
 # setup models
 model = ConvUNetBis(
     input_size=config["nvox"], 
-    channels_in=samples.shape[1], 
+    channels_in=3, #samples.shape[1], 
     channels_init=config["channels_init"],
     channels_out=config["channels_out"],
 )
@@ -91,12 +93,12 @@ smallLinear.load_state_dict(checkpoint["linear_model_state_dict"])
 # point sampler
 pp3d = PointPooling3D(interpolation="trilinear")
 
-epoch_total_loss = 0
-epoch_recon_loss = 0
-epoch_pde_loss = 0
+# epoch_total_loss = 0
+# epoch_recon_loss = 0
+# epoch_pde_loss = 0
 
-predictions = torch.from_numpy(np.zeros((len(samples), 4, samples.shape[2], samples.shape[3], samples.shape[4])))
-predictions = predictions.float()
+# predictions = torch.from_numpy(np.zeros((len(samples), 4, samples.shape[2], samples.shape[3], samples.shape[4])))
+# predictions = predictions.float()
 
 # iterate through the dataset
 # for i, (flow_sample, map_sample) in enumerate(val_dataloader):
@@ -161,7 +163,7 @@ predictions = predictions.float()
 #     weights[(seg_interpolations_rand<0.5).squeeze(), :] = torch.Tensor([background_pde, background_recon])
     
 #     # compute the loss
-#     pde_loss = weights[:, 0]*0 #*pde_loss_function.compute_loss(inputs, outputs_linear)
+#     pde_loss = weights[:, 0]*pde_loss_function.compute_loss(inputs, outputs_linear)
 #     recon_loss = weights[:, 1]*recon_loss_function.compute_loss(pts_flows, outputs_linear)
 #     loss = torch.mean(pde_loss + recon_loss)
     
@@ -180,19 +182,14 @@ os.chdir(initial_dir)
 # Web App
 ########################################################################## 
 
-from dash import Dash, html, dcc
+from dash import Dash, html, dcc, callback_context
 import plotly.express as px
 import numpy as np
 from src.components import ids
-from dash.dependencies import Input, Output
+from dash.dependencies import Input, Output, State
 # import os
 
 app = Dash(__name__)
-
-image_data = np.load('src/data/example_image.npy')
-fig = px.imshow(image_data)
-fig1 = px.imshow(image_data)
-fig2 = px.imshow(image_data)
 
 app.layout = html.Div(children=[
     html.H1(children='PC-MRI flow denoising and super-resolution'),
@@ -204,9 +201,15 @@ app.layout = html.Div(children=[
         placeholder='Select a file',
         value=None
     ),
+    dcc.Store(id=ids.FILE_DROPDOWN_STORE, data=None),
     dcc.Graph(id=ids.IMAGE_PLOT_1, style={'display': 'inline-block'}),
     dcc.Graph(id=ids.IMAGE_PLOT_2, style={'display': 'inline-block'}),
     html.Button('Denoise', id=ids.UPDATE_FIGURE_2, n_clicks=0),
+    html.Div(),
+    dcc.Textarea(id=ids.COORDINATES, value="Coordinates: x=[0; 64], [y=0; 64]", style={'width': '50%'}),
+    dcc.Store(id=ids.RELAYOUT_DATA_STATE, data=None),
+    html.Div(),
+    html.Button('Super-resolve', id=ids.SUPERRESOLVE_FIGURE_1, n_clicks=0),
 ])
 
 @app.callback(Output(ids.IMAGE_PLOT_1, 'figure'), Input(ids.FILE_DROPDOWN, 'value'))
@@ -215,7 +218,9 @@ def update_output(content):
         # return f'You selected file: {content}'
         path = 'src/data/' + content
         array = np.load(path, allow_pickle=True)
-        fig1 = px.imshow(array, title="Input image")
+        # print(array.argmax(axis=2))
+        sliced = array[0, 0, 15, ...]
+        fig1 = px.imshow(sliced, title="Input image")
         return fig1
     else:
         array = np.zeros(shape=(2,2))
@@ -224,16 +229,134 @@ def update_output(content):
 
 @app.callback(
     Output(ids.IMAGE_PLOT_2, 'figure'), 
-    Input(ids.UPDATE_FIGURE_2, 'n_clicks'),
+    [
+        Input(ids.UPDATE_FIGURE_2, 'n_clicks'),
+        Input(ids.SUPERRESOLVE_FIGURE_1, 'n_clicks'),
+    ],
+    [
+        State(ids.FILE_DROPDOWN, 'value'),
+        State(ids.FILE_DROPDOWN_STORE, 'data'),
+        State(ids.IMAGE_PLOT_1, 'relayoutData')
+    ]
 )
-def denoise_input(n_clicks):
-    if n_clicks:
-        array = np.load('src/data/example_image.npy')
-        fig1 = px.imshow(array, title="Model Output")
-    else:
+def denoise_input(n_clicks_denoise, n_clicks_superresolve, value, data, relayout_data):
+    ctx = callback_context
+    print(ctx.triggered[0]['prop_id'])
+    data = value # store in browser
+    content = value 
+    print(content)
+    if ctx.triggered[0]['prop_id'] == '.':
         array = np.zeros(shape=(2,2))
         fig1 = px.imshow(array, title="Model Output")
+
+    elif ctx.triggered[0]['prop_id'] == f'{ids.UPDATE_FIGURE_2}.n_clicks':
+        path = 'src/data/' + content
+        array = torch.from_numpy(np.load(path, allow_pickle=True))[:1, ...]
+        path_seg = path.split('.')[0] + '_segmentation.npy'
+        segmentation = torch.from_numpy(np.load(path_seg, allow_pickle=True))[:1, ...]
+
+        predictions = torch.from_numpy(np.zeros((len(array), 4, array.shape[2], array.shape[3], array.shape[4])))
+        predictions = predictions.float()
+
+        flow_sample = array.to(device=device, dtype=dtype) # move to device, e.g. GPU
+        map_sample = segmentation.to(device=device, dtype=dtype)
+
+        # =====================forward======================
+        # compute latent vectors
+        latent_vectors = model(flow_sample)
+        
+        # select same number of points per image to sample, unsqueeze at dim 1 to get the shape
+        # batch_size x 1 x num_points x coordinates_size
+        pts_ints = torch.cat(
+            [get_all_points(map_one.squeeze()).unsqueeze(0) for map_one in map_sample], 
+            dim=0
+        ).unsqueeze(1).unsqueeze(1)
+        
+        # pts_ints = torch.Tensor(np.array([get_all_points(map_one.squeeze()) for map_one in map_sample])).unsqueeze(1).unsqueeze(1)
+        # normalize the points to be in -1, 1 (required by grid_sample)
+        # to have it zoomed, I divide these points here by whatever number
+        pts = (2*(pts_ints/(array.shape[3]-1)) - 1)/1
+        
+        # features, segmentation maps, flow values
+        pts_vectors, pts_maps, pts_flows = pp3d(latent_vectors, map_sample, flow_sample, pts)
+        pts_locations = pts.squeeze()
+        pts_locations = pts_locations.unsqueeze(0)
+        pts_locations.requires_grad = True # needed for the PDE loss
+        
+        # create feature vectors for each sampled point
+        feature_vector = torch.cat([pts_locations, pts_maps, pts_vectors], dim=-1) 
+        feature_vector = feature_vector.reshape((-1, model.channels_out + 4)) # x, y, z, seg inter, features
+        
+        # split input features to allow taking separate derivatives
+        inputs = [feature_vector[..., i:i+1] for i in range(feature_vector.shape[-1])]
+        x_ = torch.cat(inputs, axis=-1)
+        
+        # forward through linear model
+        outputs_linear = smallLinear(x_)
+        
+        # points as integers for indexing
+        print(pts_ints.shape)
+        pts_ints_l = pts_ints.squeeze().long()
+        pts_ints_l = pts_ints_l.unsqueeze(0)
+        print(pts_ints_l.shape)
+
+        for k in tqdm(range(len(pts_ints_l))):
+            pts_one_long = pts_ints_l[k]
+            outputs_linear_one = outputs_linear.reshape(array.shape[0], 64**3, 4)[k]
+
+            flat_one_points = ravel_multi_index(pts_one_long, (64, 64, 64))
+            a = torch.zeros((4, 64*64*64), dtype=outputs_linear_one.dtype, requires_grad=False)
+            a[:, flat_one_points] = outputs_linear_one.T
+            predictions[k] = a.reshape((4, 64, 64, 64))
+        
+
+        model_output = predictions.detach().cpu().numpy()[0, 0, 15, ...]
+        fig1 = px.imshow(model_output, title="Model Output")
+
+    elif ctx.triggered[0]['prop_id'] == f'{ids.SUPERRESOLVE_FIGURE_1}.n_clicks':
+        array = np.zeros(shape=(2,2))
+        fig1 = px.imshow(array, title="Model Output")
+
+        x_coord_l = relayout_data['xaxis.range[0]']
+        x_coord_r = relayout_data['xaxis.range[1]']
+        y_coord_l = relayout_data['yaxis.range[0]']
+        y_coord_r = relayout_data['yaxis.range[1]']
+
+        
+
     return fig1
+
+
+
+
+@app.callback(Output(ids.COORDINATES, 'value'),
+              [
+                Input(ids.IMAGE_PLOT_1, 'relayoutData'),
+                State(ids.RELAYOUT_DATA_STATE,'data')
+              ])
+def store_coordinates(relayout_data, relayout_data_state):
+    if relayout_data == relayout_data_state or relayout_data == {'autosize': True}:
+        return "Coordinates: x=[0; 64], [y=0; 64]"
+    else:
+        x_coord_l = relayout_data['xaxis.range[0]']
+        x_coord_r = relayout_data['xaxis.range[1]']
+        y_coord_l = relayout_data['yaxis.range[0]']
+        y_coord_r = relayout_data['yaxis.range[1]']
+        return f"Coordinates: x=[{x_coord_l:.2f}; {x_coord_r:.2f}], [y={y_coord_l:.2f}; {y_coord_r:.2f}]"
+
+
+# @app.callback(
+#     Output(ids.IMAGE_PLOT_2, 'figure'), 
+#     [
+#         Input(ids.SUPERRESOLVE_FIGURE_1, 'n_clicks'),
+#         Input(ids.COORDINATES, 'value')
+#     ]
+# )
+# def denoise_input(n_clicks, content):
+#     if n_clicks:
+#         array = np.zeros(shape=(2,2))
+#         fig1 = px.imshow(array, title="Model Output")
+#         return fig1
 
 if __name__ == '__main__':
     app.run_server(debug=True)
