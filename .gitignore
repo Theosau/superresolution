@@ -20,3 +20,5 @@ trainings/config_models/*
 !trainings/config_models/current_model.yml
 
 webApp/src/data/*
+
+*.dcm
