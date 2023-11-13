@@ -1,0 +1,43 @@
+# data
+nvox: 64
+
+# pipe and channel
+# nsamples: 60
+# gen_channel: False
+# flows_in_z: False
+# gen_pipe: False
+# multthickness: False
+# multpositions: False
+# multangles: False
+
+# stenosis and aneurysm
+gen_stenosis: True
+gen_aneurysm: True
+noisy: False
+noise_std: 0.0
+transforms: True
+data_aug: 1
+
+# model 
+channels_init: 3
+channels_out: 1
+latent_space_size: 60
+model_name: 3daneurysm_3dstenosis_099_transforms_aug1_latent60_newmaps_sparsity50
+
+# hyper parameters
+epoch_sparsity: 50
+target_sparsity: 1.0
+num_epochs: 5000
+epoch_eval: 20
+batch_size: 5
+learning_rate: 1.0e-4
+loss_function: mae
+
+# optimizer
+scheduler: True
+scheduler_type: exponential
+scheduler_gamma: 0.99
+# 0.99
+scheduler_patience: 20
+scheduler_base_lr: 1.0e-4
+scheduler_max_lr: 1.0e-3
