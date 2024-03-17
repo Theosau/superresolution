@@ -147,16 +147,8 @@ if __name__ == "__main__":
 
     # volume size
     nvox = config["nvox"]
-    # nsamples = config["nsamples"]
-    # multthickness = config["multthickness"]
-    # multpositions = config["multpositions"]
-    # multangles = config["multangles"]
-    # flows_in_z = config["flows_in_z"]
 
     # datasets
-    # gen_channel = config["gen_channel"]
-    # gen_pipe = config["gen_pipe"]
-    # assert gen_channel or gen_pipe, 'You should at least generate channel flows or pipe flows.'
     gen_stenosis = config["gen_stenosis"]
     gen_aneurysm = config["gen_aneurysm"]
     assert gen_stenosis or gen_aneurysm, 'You should at least generate stenosis flows or aneurysm flows.'
