@@ -1,0 +1,44 @@
+# data
+nvox: 64
+
+# pipe and channel
+# nsamples: 60
+# gen_channel: False
+# flows_in_z: False
+# gen_pipe: False
+# multthickness: False
+# multpositions: False
+# multangles: False
+
+# stenosis and aneurysm
+gen_stenosis: True
+gen_aneurysm: True
+noisy: True
+noise_std: 1.0
+transforms: True
+data_aug: 1
+
+# model
+channels_init: 3
+channels_out: 3
+latent_space_size: 60
+model_name: 3daneurysm_3dstenosis_weighted_1_1_1back_scheduler099_sparsity500_transforms_aug1_mse_latent60_noise10_continued
+
+# hyper parameters
+epoch_sparsity: 500
+target_sparsity: 1.0
+num_epochs: 5000
+epoch_eval: 20
+batch_size: 5
+learning_rate: 5.0e-4
+loss_function: mse
+
+# optimizer
+scheduler: True
+scheduler_type: exponential
+scheduler_gamma: 0.99
+# 0.99
+# try with 0.9 to be like geometry?
+scheduler_patience: 20
+scheduler_base_lr: 1.0e-4
+scheduler_max_lr: 1.0e-3

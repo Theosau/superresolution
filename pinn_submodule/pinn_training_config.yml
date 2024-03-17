@@ -1,0 +1,66 @@
+# data
+nvox: 64
+
+# pipe and channel
+# nsamples: 60
+# gen_channel: False
+# flows_in_z: False
+# gen_pipe: False
+# multthickness: False
+# multpositions: False
+# multangles: False
+
+# stenosis and aneurysm
+gen_stenosis: True
+gen_aneurysm: True
+noisy: False
+noise_std: 0.0
+transforms: True
+data_aug: 1
+
+# model
+model_type: pinn_extra_large
+model_name: 3daneurysm_3dstenosis_weightedrecon_mse_10_10_pdemse01_10boundary_pinnextralarge_latent60_transforms_aug1_batch64_continued
+# 3dstenosis_weightedrecon_mse_10_10_pde001_10boundary_pinnextralarge_latent60_transforms_aug1_batch64_noise10_continued
+# pretrained models
+geometry_model_name: 3daneurysm_3dstenosis_099_transforms_aug1_latent60_newmaps_sparsity50
+# 3aneurysm_099_transforms_aug2_latent60_newmaps_sparsity50
+# 3dstenosis_099_transforms_aug2_latent60_newmaps_sparsity50_continued
+# 3dstenosis_099_moredata
+flow_model_name: 3daneurysm_3dstenosis_weighted_1_1_1back_scheduler099_sparsity500_transforms_aug1_mse_latent60
+# 3daneurysm_3dstenosis_weighted_1_1_1back_scheduler099_sparsity500_transforms_aug1_mse_latent60
+# 3daneurysm_weighted_1_1_1back_scheduler099_sparsity300_transforms_aug2_mse_latent60_noise10
+# 3dstenosis_weighted_1_1_1back_scheduler099_sparsity300_transforms_aug2_mse_newmaps_latent60_noisy10_init3
+# 3dstenosis_weighted_1_1_1back_scheduler099_sparsity300_target1_transforms_aug2_mse_latent60_newseeds_continued
+# 3dstenosis_weighted_1_1_01back_scheduler099_moredata_sparsity01_noisy10
+
+# hyper parameters
+num_epochs: 50000
+batch_size: 64
+learning_rate: 2.0e-4
+pde_multiplier: 0.1
+
+# loss functions
+boundary_recon: 1.0
+boundary_pde: 0.0
+boundary_exact: 0.0
+
+flow_recon: 1.0
+flow_pde: 1.0
+flow_exact: 0.0
+
+background_recon: 0.0
+background_pde: 0.0
+background_exact: 1.0
+
+# optimizer
+scheduler: True
+scheduler_gamma: 0.99
+scheduler_patience: 200
+
+# navier-stokes parameters
+rho: 1.06
+mu: 0.04
+gx: 0
+gy: 0
+gz: 0

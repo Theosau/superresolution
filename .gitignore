@@ -1,7 +1,8 @@
 .ipynb_checkpoints*
 .DS_Store
 TurbCutout.ipynb
-data/*
+data/channel*
+data/example*
 __pycache__*
 checks/
 *.sh
@@ -9,7 +10,15 @@ checks/
 
 !trainings/
 trainings/*
-!trainings/saved_models/
 
+!trainings/saved_models/
 trainings/saved_models/*
 !trainings/saved_models/current_model
+
+!trainings/config_models/
+trainings/config_models/*
+!trainings/config_models/current_model.yml
+
+webApp/src/data/*
+
+*.dcm
