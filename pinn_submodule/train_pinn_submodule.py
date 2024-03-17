@@ -123,13 +123,7 @@ def get_losses_weights(
         device=device,
         dtype=dtype
     )
-    # background weights
-    # weights[background_points, :] = torch.tensor(
-    #     [background_pde, background_recon, background_exact], 
-    #     device=device, 
-    #     dtype=dtype
-    # )
-    return weights, flow_points, boundary_points #, background_points
+    return weights, flow_points, boundary_points
 
 
 
@@ -220,21 +214,13 @@ if __name__ == "__main__":
     elif gen_stenosis:
         velocity_scale_for_norm = velocity_scale_for_norm_stenosis
 
-    # just pipe flows
+    # just aneurysm flows
     else:
         flows = flows_paneurysm
         segmentation_maps = segmentation_maps_aneurysm 
         velocity_scales = velocity_scales_aneurysm 
         sdfs = sdfs_aneurysm 
         velocity_scale_for_norm = velocity_scale_for_norm_aneurysm 
-    
-    # # generate stenosis
-    # flows, segmentation_maps, velocity_scales, sdfs, velocity_scale_for_norm = generate_3daneurysm(
-    #     nvox=64, 
-    #     sdf=True,
-    #     transforms=transforms,
-    #     data_aug=data_aug
-    # )
     
     sdfs_min = np.min(sdfs, axis=(-1, -2, -3, -4, -5), keepdims=True)
     sdfs_max = np.max(sdfs, axis=(-1, -2, -3, -4, -5), keepdims=True)
